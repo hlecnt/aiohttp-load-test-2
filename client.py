@@ -1,6 +1,8 @@
 import asyncio
 import logging
 import os
+import cProfile
+
 
 from aiohttp import ClientTimeout
 from aiohttp import ClientSession, TCPConnector
@@ -22,6 +24,7 @@ CEIL_THRESHOLD = float(os.environ.get("CEIL_THRESHOLD", 5))
 CONCURRENCY = int(os.environ.get("CONCURRENCY", 500))
 MODE = str(os.environ.get("MODE", "concurrency"))
 SERVER = str(os.environ.get("SERVER", "proxied"))
+CPROFILE = True if os.environ.get("CPROFILE", False) else False
 
 
 async def fetch(session: ClientSession, url, params, timeout):
@@ -79,6 +82,11 @@ async def wait_for_ping():
 if __name__ == "__main__":
     logger.info(f"Starting...")
 
+    if CPROFILE:
+      logger.info("Enable cProfile")
+      profiler = cProfile.Profile()
+      profiler.enable()
+
     try:
         type_of_event_loop = os.environ.get("EVENTLOOP", "asyncio")
         if type_of_event_loop == "uvloop":
@@ -104,5 +112,11 @@ if __name__ == "__main__":
 
     asyncio.get_event_loop().run_until_complete(wait_for_ping())
     asyncio.get_event_loop().run_until_complete(main())
+
+    if CPROFILE:
+      logger.info("Dump cProfile stats")
+      profiler.disable()
+      profiler.dump_stats("/cprofile/profile.prof")
+
 
     logger.info(f"Bye Bye!")
